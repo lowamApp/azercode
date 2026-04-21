@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOWAM AzerCode</title>
+    <style>
+        /* --- STYLE GLOBAL & HEADER --- */
+        body { font-family: sans-serif; background-color: #0b141a; color: white; margin: 0; padding: 0; }
+        header { background: #075e54; color: white; padding: 15px; text-align: center; font-weight: bold; font-size: 1.2rem; }
+        .container { padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        
+        /* --- SPLASH SCREEN --- */
+        #splash {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #0b141a; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 9999;
+        }
+        #splash img { width: 120px; border-radius: 20px; box-shadow: 0 0 20px rgba(37, 211, 102, 0.3); }
+        #splash p { color: #25d366; margin-top: 20px; letter-spacing: 2px; }
+
+        /* --- INTERFACE APP --- */
+        #app-content { display: none; } /* Caché au début */
+        textarea { width: 100%; height: 120px; background: #111b21; color: white; border: 1px solid #222e35; border-radius: 8px; padding: 10px; box-sizing: border-box; }
+        .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        button { padding: 12px; border: none; border-radius: 5px; font-weight: bold; background: #202c33; color: #00a884; cursor: pointer; }
+        .output { background: #111b21; min-height: 100px; padding: 15px; border-radius: 8px; border: 1px dashed #25d366; word-break: break-all; margin-top: 10px; }
+        .btn-share { grid-column: span 2; background: #25d366; color: #0b141a; }
+    </style>
+</head>
+<body>
+
+    <div id="splash">
+        <img src="logo.png" alt="Logo">
+        <p>LOWAM AzerCode...</p>
+    </div>
+
+    <div id="app-content">
+        <header>
+            <img src="logo.png" style="height: 30px; vertical-align: middle; margin-right: 10px;">
+            🔷 LOWAM AzerCode
+        </header>
+
+        <div class="container">
+            <textarea id="input" placeholder="Écris ton message..."></textarea>
+            <div class="buttons">
+                <button onclick="process(true)">ENCODER</button>
+                <button onclick="process(false)" style="background:#00a884; color:white;">DÉCODER</button>
+                <button onclick="copyText()">COPIER</button>
+                <button onclick="clearText()" style="background:#ea4335; color:white;">EFFACER</button>
+                <button onclick="shareText()" class="btn-share">PARTAGER LE CODE</button>
+            </div>
+            <div class="output" id="output"></div>
+        </div>
+    </div>
+
+    <script>
+        // Logique de disparition du Splash
+        window.onload = function() {
+            setTimeout(function() {
+                document.getElementById("splash").style.display = "none";
+                document.getElementById("app-content").style.display = "block";
+            }, 2500);
+        };
+
+        // Ton code de traduction
+        const azercode = {"A":"1","Z":"2","E":"3","R":"4","T":"5","Y":"6","U":"7","I":"8","O":"9","P":"0","Q":"1²","S":"2²","D":"3²","F":"4²","G":"5²","H":"6²","J":"7²","K":"8²","L":"9²","M":"0²","W":"3‹","X":"4‹","C":"5‹","V":"5›","B":"6›","N":"7›"};
+        const num = {"1":"a","2":"z","3":"e","4":"r","5":"t","6":"y","7":"u","8":"i","9":"o","0":"p"};
+        const sup = {"0":"⁰","1":"¹","2":"²","3":"³","4":"⁴","5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹"};
+
+        const revAz = Object.fromEntries(Object.entries(azercode).map(([k,v])=>[v,k]));
+        const revNum = Object.fromEntries(Object.entries(num).map(([k,v])=>[v,k]));
+        const revSup = Object.fromEntries(Object.entries(sup).map(([k,v])=>[v,k]));
+
+        function encodeSmall(n) {
+            let s = n.toString();
+            if(s.length==1) return num[s];
+            if(s.length==2) return num[s[0]]+sup[s[1]];
+            if(s.length==3) return num[s[0]]+sup[s[1]]+num[s[2]];
+            if(s.length==4) return num[s[2]]+sup[s[3]]+num[s[0]]+sup[s[1]];
+            if(s.length==5) return num[s[0]]+sup[s[1]]+num[s[2]]+sup[s[3]]+num[s[4]];
+            return s;
+        }
+
+        function encodeBig(n) {
+            let val = parseInt(n);
+            if(val >= 1000000) {
+                let m = Math.floor(val/1000000);
+                let reste = val%1000000;
+                return encodeSmall(m) + "€€" + (reste > 0 ? encodeBig(reste) : "");
+            }
+            if(val >= 1000) {
+                let k = Math.floor(val/1000);
+                let reste = val%1000;
+                return encodeSmall(k) + "€" + (reste > 0 ? encodeSmall(reste) : "");
+            }
+            return encodeSmall(n);
+        }
+
+        function process(isEncoding) {
+            let input = document.getElementById("input").value;
+            let out = document.getElementById("output");
+            if(isEncoding) {
+                let text = input.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase();
+                text = text.replace(/(\d+)H(\d+)/g, (m,h,min)=> encodeBig(h)+"m"+encodeBig(min));
+                text = text.replace(/(\d+)H/g, (m,h)=> encodeBig(h)+"m");
+                text = text.replace(/\d+/g, (n)=> encodeBig(n));
+                let final = "";
+                for(let c of text) { final += azercode[c] || c; }
+                out.innerText = final.toLowerCase();
+            } else {
+                let text = input;
+                let keys = Object.keys(revAz).sort((a,b)=>b.length-a.length);
+                keys.forEach(k => { text = text.split(k).join(revAz[k]); });
+                text = text.replace(/m/g, "H");
+                text = text.replace(/[a-p][⁰-⁹][a-p][⁰-⁹]/g, (m)=> {
+                    return revNum[m[2]]+revSup[m[3]]+revNum[m[0]]+revSup[m[1]];
+                });
+                for(let k in revSup) text = text.split(k).join(revSup[k]);
+                for(let k in revNum) text = text.split(k).join(revNum[k]);
+                out.innerText = text.toUpperCase();
+            }
+        }
+
+        function copyText() {
+            navigator.clipboard.writeText(document.getElementById("output").innerText);
+        }
+
+        function shareText() {
+            if(navigator.share) {
+                navigator.share({ text: document.getElementById("output").innerText });
+            } else { alert("Partage non supporté"); }
+        }
+
+        function clearText() {
+            document.getElementById("input").value = "";
+            document.getElementById("output").innerText = "";
+        }
+    </script>
+</body>
+</html>
