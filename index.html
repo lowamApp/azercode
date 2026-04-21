@@ -126,11 +126,24 @@
             navigator.clipboard.writeText(document.getElementById("output").innerText);
         }
 
-        function shareText() {
-            if(navigator.share) {
-                navigator.share({ text: document.getElementById("output").innerText });
-            } else { alert("Partage non supporté"); }
-        }
+      function shareText() {
+    const textToShare = document.getElementById("output").innerText;
+    if (!textToShare) {
+        alert("Rien à partager ! Encode un message d'abord.");
+        return;
+    }
+    
+    if (navigator.share) {
+        navigator.share({
+            title: 'LOWAM AzerCode',
+            text: textToShare
+        }).catch((error) => console.log('Erreur de partage', error));
+    } else {
+        // Si le partage natif échoue, on propose au moins de copier
+        copyText();
+        alert("Partage non supporté, le code a été COPIÉ dans le presse-papier.");
+    }
+}
 
         function clearText() {
             document.getElementById("input").value = "";
